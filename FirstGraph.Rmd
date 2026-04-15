@@ -13,9 +13,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Data Source Link: https://github.com/pablobarbera/echo_chambers?tab=readme-ov-file
 
-##Unit of Observation: ------------ 
+##Unit of Observation: Individual social media (Twitter) users
 
-##Possible Research Question: How do Social Media interactions amplify online echo chambers among its users?
+##Possible Research Question: To what extent do Twitter users mainly interact with other users who share similar ideological positions to them?
 
 ```{r}
 library(ggplot2)
