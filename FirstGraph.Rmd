@@ -1,0 +1,40 @@
+---
+title: "FirstGraph"
+author: "Arkadzi Rakach"
+date: "2026-04-04"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Article Name: "Tweeting From Left to Right: Is Online Political Communication More Than an Echo Chamber?"
+
+## Data Source Link: https://github.com/pablobarbera/echo_chambers?tab=readme-ov-file
+
+##Unit of Observation: ------------ 
+
+##Possible Research Question: How do Social Media interactions amplify online echo chambers among its users?
+
+```{r}
+library(ggplot2)
+
+str(estimates)
+head(estimates)
+```
+
+
+## Distribution of predicted ideologies as used in this study, which are placed on a -3.0 to 3.0 scale.
+
+```{r}
+ggplot(estimates, aes(x = ideology)) +
+  geom_histogram(bins = 18) +
+  labs(
+    title = "Distribution of Estimated Ideology Scores",
+    x = "Estimated ideology",
+    y = "Count"
+  )
+```
+
+
