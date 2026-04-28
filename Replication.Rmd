@@ -13,8 +13,9 @@ knitr::opts_chunk$set(echo = TRUE)
 **Discussion**
 In this replication, I replicated figures 3C and 3D from the article "Tweeting From Left to Right: Is Online
 Political Communication More Than an Echo Chamber?" Their code was all available on github and Harvard 
-Dataverse, so I was able to replicate it without many  issues. However, I ran into an issue on figure 4C, where 
-two rows do not show up in my graph. I also made some minor changes and adjustments on the environment-level, in 
+Dataverse, so I was able to replicate it without many issues. However, I ran into an issue on figure 4C, where 
+two rows do not show up in my graph. I am not sure what caused this, and when I played around with some of the 
+code I failed to fix this. I also made some minor changes and adjustments on the environment-level, in 
 terms of document locations, to the original code.
 
 
