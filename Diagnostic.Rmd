@@ -1,0 +1,240 @@
+---
+title: "Replication"
+author: "Arkadzi Rakach"
+date: "2026-04-26"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+**Discussion**
+In this diagnostic, I tested the sensitivity of the results by splitting 
+the average ideological extremity scores by ideological side. While the original 
+study simply aggregated the polarization scores by taking the absolute values, 
+my diagnostic seeks to maintain the structure of the original measure intact 
+while adding a robustness check in the form of checking for one-sided ideological
+influence. In other words, the question I ask here is: "Is the polarization 
+caused mainly by one side of the political spectrum, or does it hold across the 
+board?"
+
+As can be seen below, my diagnostic graph shows that the results are not simply
+driven by one side of the political aisle. Although some social media topics 
+such as minimum wage and Syria have slight, albeit notable, difference in 
+polarization between liberals and conservatives, the reality is that the results 
+prove to be quite robust.
+
+After this diagnostic, I am slightly surprised at the decision of the authors 
+to not include this in the paper for this figure, seeing that it might have
+strengthened their arguments. They do test this in the poisson regression they
+run, but doing it for this figure would have been much more intuitive for the
+average reader.
+
+Finally, this diagnostic is valid for this article due to the fact that it
+analyzes networks of retweets on certain issues, assigned with an ideology
+score. Although my diagnostic does not ensure that the ideology assignment is
+correct, it does make sure that the results are not dependent on a single 
+ideology, building confidence in the study.
+
+**Limitations**
+One major limitation is that I was not able to include data from the 2012 
+election. I went to the data lab in order to see why the data for this was not
+loading, and it turned out that the authors had missing data for the election
+on their GitHub.
+
+The data lab helped me figure out the diagnostic code and problem with 
+missing 2012 election data. I will attach photos showing the clearly incorrect
+file size and empty file which is available on their GitHub to the assignment
+submission on Canvas. 
+
+In the future, it may be interesting to look at how polarization on
+different sides of the political aisle differs by political and 
+non-political topics.
+
+
+```{r}
+load("output/estimates.rdata")
+```
+
+```{r}
+library(reshape)
+library(ggplot2)
+library(scales)
+library(RColorBrewer)
+```
+
+**3C**
+```{r}
+lists <- c("minimum_wage", "obama", "superbowl", "marriageequality", "budget",
+           "newtown", "governmentshutdown", "oscars", "sotu", "syria",
+           "olympics", "boston")
+
+labels <- c("Minimum Wage", "2012 Election", "Super Bowl", "Marriage Equality",
+            "Budget", "Newtown Shooting", "Govt. Shutdown", "Oscars 2014",
+            "State of the Union", "Syria", "Winter Olympics", "Boston Marathon")
+
+polarization <- c()
+
+for (j in 1:length(lists)){
+  
+  cat(j, " ")
+  
+  lst <- lists[j]
+  cat(lst, "\n")
+  
+  load(paste0("output/temp/retweets_ideology/rt_results_", lst, ".rdata"))
+  
+  polarization <- rbind(
+    polarization,
+    data.frame(
+      collection = labels[j],
+      polar = mean(abs(results$ideology_retweeted), na.rm = TRUE),
+      stringsAsFactors = FALSE
+    )
+  )
+}
+
+polarization <- polarization[order(polarization$polar), ]
+
+polarization$collection <- factor(
+  polarization$collection,
+  levels = rev(polarization$collection)
+)
+
+p <- ggplot(polarization, aes(x = collection, y = polar, fill = polar, label = collection))
+
+pq <- p +
+  geom_bar(stat = "identity") +
+  theme_bw() +
+  coord_flip() +
+  scale_y_continuous(
+    "Aggregate Ideological Polarization",
+    expand = c(0, 0),
+    limits = c(0, 4.0)
+  ) +
+  geom_text(hjust = 1.05, color = "white", size = 3) +
+  theme(
+    axis.title.y = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    panel.background = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    legend.position = "none"
+  )
+
+pq
+
+ggsave(filename = "plots/figure3c.pdf", plot = pq, height = 4, width = 3)
+```
+
+
+**3C Diagnostic**
+
+This is where I separate liberal and conservative retweets by individual issues. 
+
+```{r}
+lists <- c("minimum_wage", "superbowl", "marriageequality", "budget",
+           "newtown", "governmentshutdown", "oscars", "sotu", "syria",
+           "olympics", "boston")
+
+labels <- c("Minimum Wage", "Super Bowl", "Marriage Equality",
+            "Budget", "Newtown Shooting", "Govt. Shutdown", "Oscars 2014",
+            "State of the Union", "Syria", "Winter Olympics", "Boston Marathon")
+
+polarization_liberal <- c()
+polarization_conservative <- c()
+
+for (j in 1:length(lists)){
+  
+  cat(j, " ")
+  
+  lst <- lists[j]
+  cat(lst, "\n")
+  
+  load(paste0("output/temp/retweets_ideology/rt_results_", lst, ".rdata"))
+  
+  liberal_results <- results[results$ideology_retweeted < 0, ]
+  conservative_results <- results[results$ideology_retweeted > 0, ]
+  
+  polarization_liberal <- rbind(
+    polarization_liberal,
+    data.frame(
+      collection = labels[j],
+      polar = mean(abs(liberal_results$ideology_retweeted), na.rm = TRUE),
+      side = "Liberal content",
+      n = nrow(liberal_results),
+      stringsAsFactors = FALSE
+    )
+  )
+  
+  polarization_conservative <- rbind(
+    polarization_conservative,
+    data.frame(
+      collection = labels[j],
+      polar = mean(abs(conservative_results$ideology_retweeted), na.rm = TRUE),
+      side = "Conservative content",
+      n = nrow(conservative_results),
+      stringsAsFactors = FALSE
+    )
+  )
+}
+
+polarization_signed <- rbind(polarization_liberal, polarization_conservative)
+
+polarization_all <- c()
+
+for (j in 1:length(lists)){
+  
+  lst <- lists[j]
+  
+  load(paste0("output/temp/retweets_ideology/rt_results_", lst, ".rdata"))
+  
+  polarization_all <- rbind(
+    polarization_all,
+    data.frame(
+      collection = labels[j],
+      polar_all = mean(abs(results$ideology_retweeted), na.rm = TRUE),
+      stringsAsFactors = FALSE
+    )
+  )
+}
+
+polarization_all <- polarization_all[order(polarization_all$polar_all), ]
+
+polarization_signed$collection <- factor(
+  polarization_signed$collection,
+  levels = polarization_all$collection
+)
+
+pq_diag <- ggplot(
+  polarization_signed,
+  aes(x = collection, y = polar, fill = side)
+) +
+  geom_bar(stat = "identity", position = "dodge") +
+  theme_bw() +
+  coord_flip() +
+  scale_y_continuous(
+    "Aggregate Ideological Polarization",
+    expand = c(0, 0),
+    limits = c(0, 4.0)
+  ) +
+  labs(
+    title = "Diagnostic: Left vs. Right Retweet Polarization",
+    x = NULL,
+    fill = "Retweeted author ideology"
+  )
+
+pq_diag
+
+ggsave(filename = "plots/figure3c_diagnostic.pdf",
+       plot = pq_diag, height = 4, width = 6)
+
+```
+
+
+
+
