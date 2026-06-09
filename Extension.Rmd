@@ -1,0 +1,375 @@
+---
+title: "Extension"
+author: "Arkadzi Rakach"
+date: "2026-06-08"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+**Introduction**
+The article by Barberá et al. (2015) studies whether political communication 
+over the social media platform of Twitter functions as an echo chamber or if 
+there is notable broader cross-ideological engagement. To do this, they estimate 
+the ideological positions of Twitter users and then examine 
+retweeting across twelve political and nonpolitical topics. The authors
+classify topics such as the 2012 election, government shutdown, budget, marriage
+equality, minimum wage, and the State of the Union as political topics. The 
+topics were not manually classified by the content of each tweet individually, 
+but rather, the authors assigned tweets to topics using keyword searches. Tweets
+were assigned to a collection if they mentioned one of the relevant search terms
+for that topic, such as “shutdown” or “boehner” for the government shutdown, or
+“Syria,” “intervention,” and “chemical weapons” for Syria. They classify topics 
+such as the Boston Marathon bombing, Newtown shooting, Oscars, Super Bowl, 
+Winter Olympics, and Syria as nonpolitical topics. Their general finding is that
+political topics tend to produce more ideologically polarized retweeting, while 
+many nonpolitical topics have more cross-ideological retweeting.
+
+
+```{r}
+load("output/estimates.rdata")
+```
+
+```{r}
+library(reshape)
+library(ggplot2)
+library(scales)
+library(RColorBrewer)
+```
+
+
+```{r}
+load("output/estimates.rdata")
+estimates <- estimates[,c("uid", "ideology")]
+```
+
+
+**Replicating Heat Maps from Figures 2A and 2B**
+
+The first step in this process is replicating the heat maps themselves. This is 
+relatively straightforward, taking the already created retweet polarization
+results per each topic included in the study. With the exception of the 
+changing the file destinations slightly, the code ran as expected. Once again, 
+however, the data for the 2012 election is missing, which appears to be a 
+problem with the Harvard Dataverse page itself. 
+
+
+```{r}
+lists <- c("minimum_wage", "superbowl", "marriageequality", "budget",
+  "newtown", "governmentshutdown", "oscars", "sotu", "syria",
+  "olympics", "boston")
+
+not.poli <- c("superbowl", "newtown", "oscars", "syria", "olympics", "boston")
+not.poli.labels <- c("Super Bowl", "Newtown Shooting", "Oscars 2014", "Syria",
+    "Winter Olympics", "Boston Marathon")
+poli <- c("minimum_wage", "marriageequality", "budget", "governmentshutdown",
+    "sotu")
+poli.labels <- c("Minimum Wage", "Marriage Equality", "Budget",
+    "Gov. Shutdown", "State of the Union")
+
+## functions to construct heatmaps
+min <- -3.5
+max <- 3.5
+breaks <- 0.25
+
+expand_data <- function(breaks=0.10, min=-4, max=4){
+    x <- results$ideology_retweeter
+    y <- results$ideology_retweeted
+    x <- (round((x - min) / breaks, 0) * breaks) + min
+    y <- (round((y - min) / breaks, 0) * breaks) + min
+    tab <- table(x, y)
+    tab <- melt(tab)
+    tab$prop <- tab$value/sum(tab$value)
+    return(tab)
+}
+```
+
+
+**Figure 2A**
+
+First, the political topics heat map is created. Again, please note the absence
+of the 2012 election.
+
+
+```{r}
+xy.poli <- c()
+
+for (j in 1:length(poli)){
+
+    cat(j, " ")
+
+    lst <- poli[j]
+    cat(lst, " ")
+
+    load(paste0("output/temp/retweets_ideology/rt_results_", lst, ".rdata"))
+
+    new.xy <- expand_data(breaks = 0.25)
+    new.xy$candidate <- poli.labels[j]
+    xy.poli <- rbind(xy.poli, new.xy)
+}
+
+
+p <- ggplot(xy.poli, aes(x = y, y = x))
+pq <- p + geom_tile(aes(fill = prop), colour = "white") + 
+        scale_fill_gradient(name = "% of\ntweets", 
+        low = "white", high = "black", 
+        breaks = c(0, .0050, 0.010, 0.015, 0.02), limits = c(0, .021),
+        labels = c("0.0%", "0.5%", "1.0%", "1.5%", ">2%")) +
+        labs(y = "Estimated Ideology of Retweeter", x = "Estimated Ideology of Author") + 
+        scale_y_continuous(expand = c(0,0), breaks = (-2:2), limits = c(-3, 3)) +
+        scale_x_continuous(expand = c(0,0), breaks = (-2:2), limits = c(-3, 3)) +
+        facet_wrap(~ candidate, nrow = 2) + 
+        theme(panel.border = element_rect(fill = NA), panel.background = element_blank()) +
+        coord_equal() 
+
+pq
+
+ggsave(filename = "plots/figure2a.pdf", plot = pq, height = 5, width = 8)
+```
+
+**Figure 2B**
+
+The process is then repeated for non-political topics. 
+
+
+```{r}
+xy <- c()
+
+for (j in 1:length(not.poli)){
+
+    cat(j, " ")
+
+    lst <- not.poli[j]
+    cat(lst, " ")
+
+    load(paste0("output/temp/retweets_ideology/rt_results_", lst, ".rdata"))
+
+    new.xy <- expand_data(breaks = 0.25)
+    new.xy$candidate <- not.poli.labels[j]
+    xy <- rbind(xy, new.xy)
+}
+
+p <- ggplot(xy, aes(x = y, y = x))
+pq <- p + geom_tile(aes(fill = prop), colour = "white") + 
+        scale_fill_gradient(name = "% of\ntweets", 
+        low = "white", high = "black", 
+        breaks = c(0, .0050, 0.010, 0.015, 0.02), limits = c(0, .021),
+        labels = c("0.0%", "0.5%", "1.0%", "1.5%", ">2%")) +
+        labs(y = "Estimated Ideology of Retweeter", x = "Estimated Ideology of Author") + 
+        scale_y_continuous(expand = c(0,0), breaks = (-2:2), limits = c(-3, 3)) +
+        scale_x_continuous(expand = c(0,0), breaks = (-2:2), limits = c(-3, 3)) +
+        facet_wrap(~ candidate, nrow = 2) + 
+        theme(panel.border = element_rect(fill = NA), panel.background = element_blank()) +
+        coord_equal()
+
+pq
+
+ggsave(filename = "plots/figure2b.pdf", plot = pq, height = 5, width = 8)
+```
+
+
+**Extension 1**
+
+I decided to run an extension in the form of a simple robustness check. First,
+I wanted to run an aggregate polarization map for all political and
+non-political topics. Doing so allows for a clearer category-level visualization 
+of the overall retweet structure across political and nonpolitical topics. 
+Rather than comparing each topic separately, the pooled heatmaps show whether
+the broader political and nonpolitical distinction remains visible when retweets 
+are aggregated within each category.
+
+First, I assign all the retweet results data to the objects of "pol" and 
+"non_pol" in the same way they are assigned in the original article. 
+
+```{r}
+pol <- c("minimum_wage", "marriageequality", "budget", 
+         "governmentshutdown", "sotu")
+
+non_pol <- c("superbowl", "newtown", "oscars", 
+             "syria", "olympics", "boston")
+```
+
+```{r}
+political_results <- c()
+
+for (topic in pol) {
+  
+  load(paste0("output/temp/retweets_ideology/rt_results_", topic, ".rdata"))
+  
+  political_results <- rbind(political_results, results)
+}
+```
+
+```{r}
+nonpolitical_results <- c()
+
+for (topic in non_pol) {
+  
+  load(paste0("output/temp/retweets_ideology/rt_results_", topic, ".rdata"))
+  
+  nonpolitical_results <- rbind(nonpolitical_results, results)
+}
+```
+
+```{r}
+results <- political_results
+xy.pol.total <- expand_data(breaks = 0.25)
+xy.pol.total$type <- "Political"
+
+results <- nonpolitical_results
+xy.nonpol.total <- expand_data(breaks = 0.25)
+xy.nonpol.total$type <- "Nonpolitical"
+```
+
+
+```{r}
+xy.total <- rbind(xy.pol.total, xy.nonpol.total)
+```
+
+
+```{r}
+p <- ggplot(xy.total, aes(x = y, y = x))
+
+pq <- p + 
+  geom_tile(aes(fill = prop), colour = "white") + 
+  scale_fill_gradient(
+    name = "% of\ntweets", 
+    low = "white", high = "black", 
+    breaks = c(0, .0050, 0.010, 0.015, 0.02),
+    limits = c(0, .021),
+    labels = c("0.0%", "0.5%", "1.0%", "1.5%", ">2%")
+  ) +
+  labs(
+    y = "Estimated Ideology of Retweeter",
+    x = "Estimated Ideology of Author"
+  ) + 
+  scale_y_continuous(expand = c(0,0), breaks = (-2:2), limits = c(-3, 3)) +
+  scale_x_continuous(expand = c(0,0), breaks = (-2:2), limits = c(-3, 3)) +
+  facet_wrap(~ type, nrow = 1) + 
+  theme(
+    panel.border = element_rect(fill = NA),
+    panel.background = element_blank()
+  ) +
+  coord_equal()
+
+pq
+```
+
+
+**Extension 2**
+
+I decided to run a robustness check by assigning "Syria" to the political 
+topics. Since Syria is a topic which can very plausibly be considered 
+as a political one, I wanted to test whether the polarization results were
+dependent on arbitrary, or perhaps convenient assignment of categories.
+
+The same process is repeated here, but some objects are renamed to avoid 
+overwriting ones from the previous heat maps. 
+
+
+```{r}
+pol2 <- c("minimum_wage", "marriageequality", "budget", 
+         "governmentshutdown", "sotu", "syria")
+
+non_pol2 <- c("superbowl", "newtown", "oscars", 
+             "olympics", "boston")
+```
+
+```{r}
+political_results2 <- c()
+
+for (topic in pol2) {
+  
+  load(paste0("output/temp/retweets_ideology/rt_results_", topic, ".rdata"))
+  
+  political_results2 <- rbind(political_results2, results)
+}
+```
+
+```{r}
+nonpolitical_results2 <- c()
+
+for (topic in non_pol2) {
+  
+  load(paste0("output/temp/retweets_ideology/rt_results_", topic, ".rdata"))
+  
+  nonpolitical_results2 <- rbind(nonpolitical_results2, results)
+}
+```
+
+```{r}
+results <- political_results2
+xy.pol.total2 <- expand_data(breaks = 0.25)
+xy.pol.total2$type <- "Political, Syria Included"
+
+results <- nonpolitical_results2
+xy.nonpol.total2 <- expand_data(breaks = 0.25)
+xy.nonpol.total2$type <- "Nonpolitical, Syria Excluded"
+```
+
+```{r}
+xy.total2 <- rbind(xy.pol.total2, xy.nonpol.total2)
+```
+
+```{r}
+p <- ggplot(xy.total2, aes(x = y, y = x))
+
+pq <- p + 
+  geom_tile(aes(fill = prop), colour = "white") + 
+  scale_fill_gradient(
+    name = "% of\ntweets", 
+    low = "white", high = "black", 
+    breaks = c(0, .0050, 0.010, 0.015, 0.02),
+    limits = c(0, .021),
+    labels = c("0.0%", "0.5%", "1.0%", "1.5%", ">2%")
+  ) +
+  labs(
+    y = "Estimated Ideology of Retweeter",
+    x = "Estimated Ideology of Author"
+  ) + 
+  scale_y_continuous(expand = c(0,0), breaks = (-2:2), limits = c(-3, 3)) +
+  scale_x_continuous(expand = c(0,0), breaks = (-2:2), limits = c(-3, 3)) +
+  facet_wrap(~ type, nrow = 1) + 
+  theme(
+    panel.border = element_rect(fill = NA),
+    panel.background = element_blank()
+  ) +
+  coord_equal()
+
+pq
+```
+
+
+**Discussion**
+
+This extension is appropriate because it remains close to the method used in 
+the original paper while adding a natural extension in the form of a robustness 
+check. Indeed, this allows one to examine whether the political and nonpolitical 
+divide remains visible at the broader category label rather than just within 
+topics. The combined heat maps demonstrate that both the political and 
+nonpolitical topics support the findings from the original article. 
+Although political topics generate more ideologically polarized retweets, the 
+retweets from nonpolitical topics are generally more cross-ideological.
+
+The robustness test using the change in Syria classification demonstrates that 
+reassigning retweets on the topic of Syria from the nonpolitical to the 
+political category does not significantly change the aggregate findings. In 
+fact, it only further strengthens the findings in the original article, as 
+reassigning the category of Syria actually appears to decrease polarized 
+retweets in the top right quadrant.
+
+
+**Limitations**
+
+One of the limitations regarding this extension is that topics with
+significantly more retweets may sway the results of the combined heat maps.
+At the same time, aggregated political heat map does not include the most 
+tweeted topic of the 2012 election, which based on the original paper, is also 
+one of the most polarized topics. This means that it would have potentially 
+heavily influenced the results here if it was included. 
+
+Moreover, there are still values which are dropped from both heat maps due to
+ideological values being outside of the -3 to 3 range.
